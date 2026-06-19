@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>QPrint Station</title>
+	
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+	
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #2563eb, #7c3aed);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            align-content: center;
+            padding: 30px;
+            flex-direction: column;
+        }
+
+        .sub-page {
+            display: none;
+        }
+
+        .active {
+            display: block;
+        }
+
+        section {
+            width: 100%;
+            max-width: 850px;
+            background: white;
+            padding: 35px;
+            border-radius: 24px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+            transition: 0.3s;
+        }
+
+        h1 {
+            text-align: center;
+            color: #1e293b;
+            margin-bottom: 15px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #475569;
+            margin-bottom: 20px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        label {
+            font-weight: bold;
+            color: #334155;
+        }
+
+        input[type="file"],
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #cbd5e1;
+            border-radius: 10px;
+        }
+
+        button {
+            background: linear-gradient(
+                135deg,
+                #2563eb,
+                #1d4ed8
+            );
+            color: white;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all .25s ease;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(37, 99, 235, .35);
+        }
+
+        .preview-container {
+            display: none;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        #pdf-preview {
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            max-width: 100%;
+            max-height: 500px;
+        }
+
+        .file-info {
+            margin-top: 10px;
+            color: #64748b;
+        }
+
+        .error {
+            color: red;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        #slip-promptpay-qrcode {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #slip-promptpay-qrcode img {
+            max-width: 100%;
+            width: 250px;
+            border-radius: 10px;
+            padding: 10px;
+            background: #f8fafc;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        #queue-display-queue-no {
+            display: block;
+            font-size: clamp(60px, 15vw, 120px);
+            color: #2563eb;
+            font-weight: 800;
+            text-align: center;
+            margin : 20px 0;
+            text-shadow: 0 0 15px rgba(37, 99, 235, .2);
+            letter-spacing: 5px;
+        }
+
+        #queue-display-rid {
+            word-break: break-all;
+        }
+
+        #page-queue {
+            text-align: center;
+        }
+
+        #page-error {
+            text-align: center;
+        }
+
+        .slip-preview{
+        display: none;
+        max-width: 300px;
+        margin: 10px auto;
+        }
+
+        @media (max-width: 600px) {
+            section {
+                padding: 20px;
+            }
+
+            body {
+                padding: 15px;
+            }
+
+            #queue-display-queue-no {
+                font-size: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Sub-page 1: Landing -->
+    <section id="page-landing" class="sub-page active">
+        <h1>🖨️ QPrint Station</h1>
+        <p style="text-align: center; margin-bottom: 20px;">
+        Smart Document Printing System
+        </p>
+		<!-- The Preview Area -->
+        <form id="uploadpdf">
+			<div><label for="fileInput">PDF File:</label><input type="file" id="fileInput" accept="application/pdf">
+			</div>
+			<div><label for="pageInput">Page(s):</label><input type="text" id="pageInput" placeholder="Example: 1-3,7,9-11"></div>
+			<div><label for="colorMode">Color Mode:</label><input type="radio" id="colorMode_bw" name="colorMode" value="colorMode_bw" checked>
+			  <label for="colorMode_bw">Black/White</label>
+			  <input type="radio" id="colorMode_c" name="colorMode" value="colorMode_c">
+			  <label for="colorMode_c">Color</label>
+			</div>
+			<div><button type="submit">Upload</button></div>
+        </form>
+		<div class="preview-container" id="preview-container">
+			<h3>First Page Preview:</h3>
+			<canvas id="pdf-preview"></canvas>
+			<div class="file-info" id="file-info"></div>
+		</div>
+        <p id="landing-client-error" class="error"></p>
+    </section>
+
+    <!-- Sub-page 2: Slip -->
+    <section id="page-slip" class="sub-page">
+        <h1>Request ID: <span id="slip-display-rid"></span></h1>
+		<h2>Cost (Baht): <span id="slip-display-cost"></span></h2>
+		<div id="slip-promptpay-qrcode"><img src=""/></div>
+		<form id="uploadslip">
+			<input type="hidden" id="slipRid" name="slipRid" value="">
+            <input type="file" id="slipInput" accept="image/*">
+            <img id="slip-preview" class="slip-preview">
+            <button type="submit">Upload</button>
+        </form>
+		<p id="slip-client-error" class="error"></p>
+    </section>
+
+    <!-- Sub-page 3: Queue -->
+    <section id="page-queue" class="sub-page">
+		<h1>Request ID: <span id="queue-display-rid"></span></h1>
+		<h2>Your Queue Number:</h2>
+        <span id="queue-display-queue-no">-</span>
+		<button id="refreshQueuePage">Check Queue Again</button>
+    </section>
+
+    <!-- Sub-page 4: Error -->
+    <section id="page-error" class="sub-page">
+        <h1>Something went wrong</h1>
+        <p id="error-message" class="error"></p>
+        <button onclick="goBackToSlip()">Try Again</button>
+    </section>
+
+    <script>
+        function goBackToSlip() {
+            document.getElementById('slipInput').value = "";
+            const slipPreview = document.getElementById('slip-preview');
+            slipPreview.src = "";
+            slipPreview.style.display = 'none';
+            document.getElementById('slip-client-error').innerText = "";
+            showPage('page-slip');
+        }
+
+        // View Switcher Function
+        function showPage(pageId) {
+            document.querySelectorAll('.sub-page').forEach(pg => pg.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+		
+		const refreshQueuePage = document.getElementById('refreshQueuePage');
+        refreshQueuePage.onclick = async (e) => {
+            e.preventDefault();
+			try {
+				const rid = document.getElementById('queue-display-rid').innerText;
+                const response = await fetch('/api/checkqueue?rid=' + rid, { method: 'GET'});
+                const result = await response.json();
+
+                if (response.ok) {
+					document.getElementById('queue-display-queue-no').innerText = 
+                        result.queue ?? "-";
+                    showPage('page-queue');
+                } else {
+                    document.getElementById('error-message').innerText = result.message;
+                    showPage('page-error');
+                }
+            } catch (err) {
+                document.getElementById('error-message').innerText = "Network Error.";
+                showPage('page-error');
+            }
+        }
+
+		// For page-landing
+        const uploadpdf = document.getElementById('uploadpdf');
+        uploadpdf.onsubmit = async (e) => {
+            document.getElementById('landing-client-error').innerText = "";
+            e.preventDefault();
+            const submitBtn = uploadpdf.querySelector('button');
+            submitBtn.disabled = true;
+            const fileInput = document.getElementById('fileInput');
+            const file = fileInput.files[0];
+
+            const pageInput = document.getElementById('pageInput').value;
+            const colorMode = document.querySelector(
+                'input[name="colorMode"]:checked'
+            ).value;
+
+            // 1. Client-side Validation
+            if (!file || file.type !== "application/pdf") {
+                document.getElementById('landing-client-error').innerText = 
+                    "Please select a valid PDF.";
+
+                submitBtn.disabled = false;
+                return;
+            }
+
+            // 2. Prepare Data
+            const formData = new FormData();
+            formData.append('print_file', file);
+            formData.append('pages', pageInput);
+            formData.append('colorMode', colorMode);
+
+            try {
+                // 3. API Call
+                const response = await fetch('/api/uploadpdf', { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('slip-display-rid').innerText = result.rid;
+					document.getElementById('slip-display-cost').innerText = result.cost;
+					document.getElementById('slipRid').value = result.rid;
+					document.getElementById('slip-promptpay-qrcode').children[0].src = result.image_qrCode_link
+                    showPage('page-slip');
+                    // Here you would trigger the preview generation we discussed
+                } else {
+                    document.getElementById('error-message').innerText = result.message;
+                    showPage('page-error');
+                }
+            } catch (err) {
+                document.getElementById('error-message').innerText = "Network Error.";
+                showPage('page-error');
+            }
+                finally {
+                    submitBtn.disabled = false;
+                }
+        };
+
+        // For page-slip
+        const uploadslip = document.getElementById('uploadslip');
+        const slipInput = document.getElementById('slipInput');
+        const slipPreview = document.getElementById('slip-preview');
+
+        // Preview Slip Image
+        slipInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+
+            if (!file) {
+                slipPreview.style.display = 'none';
+                return;
+            }
+
+            const reader = new FileReader();
+
+            reader.onload = function(event) {
+                slipPreview.src = event.target.result;
+                slipPreview.style.display = 'block';
+            };
+
+            reader.readAsDataURL(file);
+        });
+
+        uploadslip.onsubmit = async (e) => {
+            document.getElementById('slip-client-error').innerText = "";
+            e.preventDefault();
+            const submitBtn = uploadslip.querySelector('button');
+            submitBtn.disabled = true;
+            const slip = slipInput.files[0];
+			const hiddenSlipRid = document.getElementById('slipRid').value;
+
+            // 1. Client-side Validation
+            if (!slip || !slip.type.includes("image/")) {
+                document.getElementById('slip-client-error').innerText = 
+                    "Please select an image file.";
+
+                submitBtn.disabled = false;
+                return;
+            }
+
+            // 2. Prepare Data
+            const formData = new FormData();
+            formData.append('slip_file', slip);
+			formData.append('slipRid', hiddenSlipRid);
+
+            try {
+                // 3. API Call
+                const response = await fetch('/api/uploadslip', { method: 'POST', body: formData });
+                const result = await response.json();
+
+                if (response.ok) {
+                    document.getElementById('queue-display-rid').innerText = result.rid;
+					document.getElementById('queue-display-queue-no').innerText = 
+                    result.queue ?? "-";
+                    showPage('page-queue');
+                    // Here you would trigger the preview generation we discussed
+                } else {
+                    document.getElementById('error-message').innerText = result.message;
+                    showPage('page-error');
+                }
+            } catch (err) {
+                document.getElementById('error-message').innerText = "Network Error.";
+                showPage('page-error');
+            }
+                finally {
+                    submitBtn.disabled = false;
+                }
+        };
+    </script>
+	
+	<script>
+
+// Tell PDF.js where the worker is
+pdfjsLib.GlobalWorkerOptions.workerSrc =
+'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+document.addEventListener('DOMContentLoaded', function() {
+
+    const fileInput = document.getElementById('fileInput');
+    const pageInput = document.getElementById('pageInput');
+
+    const previewContainer = document.getElementById('preview-container');
+    const canvas = document.getElementById('pdf-preview');
+    const fileInfo = document.getElementById('file-info');
+    const ctx = canvas.getContext('2d');
+
+    let currentPdf = null;
+
+    // =========================
+    // render page function
+    // =========================
+    function renderPage(pdf, pageNumber) {
+
+        pdf.getPage(pageNumber).then(function(page) {
+
+            const viewport = page.getViewport({ scale: 1.0 });
+
+            canvas.height = viewport.height;
+            canvas.width = viewport.width;
+
+            const renderContext = {
+                canvasContext: ctx,
+                viewport: viewport
+            };
+
+            page.render(renderContext).promise;
+
+            previewContainer.style.display = 'block';
+        });
+    }
+
+    // =========================
+    // file upload handler
+    // =========================
+    fileInput.addEventListener('change', function(e) {
+
+        const file = e.target.files[0];
+
+        if (!file || file.type !== 'application/pdf') {
+            previewContainer.style.display = 'none';
+            return;
+        }
+
+        const fileReader = new FileReader();
+
+        fileReader.onload = function() {
+
+            const typedarray = new Uint8Array(this.result);
+
+            pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+
+                currentPdf = pdf;
+
+                fileInfo.textContent =
+                    `Total pages detected: ${pdf.numPages}`;
+
+                // default show page 1
+                renderPage(currentPdf, 1);
+
+                // =========================
+                // page input handler
+                // =========================
+                pageInput.oninput = function() {
+
+                    if (!currentPdf) return;
+
+                    let p = parseInt(pageInput.value);
+
+                    if (!p) return;
+
+                    // clamp logic (IMPORTANT PART)
+                    if (p < 1) p = 1;
+                    if (p > currentPdf.numPages) {
+                        p = currentPdf.numPages;
+                    }
+
+                    renderPage(currentPdf, p);
+                };
+
+            });
+
+        };
+
+        fileReader.readAsArrayBuffer(file);
+    });
+
+});
+    </script>
+	
+</body>
+</html>
