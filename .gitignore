@@ -1,0 +1,10 @@
+# ละเว้นโฟลเดอร์ Virtual Environment
+venv/
+
+# ละเว้นโฟลเดอร์ที่เก็บไฟล์เอกสารอัปโหลด
+uploads/
+*.pdf
+
+# ละเว้นไฟล์แคชของ Python
+__pycache__/
+*.pyc
