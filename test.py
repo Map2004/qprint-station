@@ -149,7 +149,7 @@ def do_uploadpdf():
         cost = page_total * 3      # สี 3 บาท/หน้า
     else:
         cost = page_total * 1      # ขาวดำ 1 บาท/หน้า
-    image_qrCode_link = f"https://promptpay.io/0988501644/{cost}"
+    image_qrCode_link = f"https://promptpay.io/0618978484/{cost}.png"
     
         
     # Safely modify the shared dictionary
